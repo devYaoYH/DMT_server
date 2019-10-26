@@ -24,6 +24,6 @@ We will respond with json:
 
 Use POST to stream recorded sound packets to our server for further analysis.
 
-## /visualize/\<sessionID\>
+## /view/\<sessionID\>
 
 Data visualization for *sessionID* recording session.
