@@ -12,6 +12,14 @@ POST to /api/init with correctly formatted handshake packet to initialize record
 }
 ```
 
+We will respond with json:
+```
+{
+    'success': True/False,
+    'url': some url to post audio data to
+}
+```
+
 ## /api/stream/\<id\>
 
 Use POST to stream recorded sound packets to our server for further analysis.
