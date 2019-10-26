@@ -4,7 +4,7 @@
 
 POST to /api/init with correctly formatted handshake packet to initialize recording of audio data.
 
-```json
+```
 {
     'rate': <Int> Polling rate (Bits/sec),
     'sessionID': <String> Recording session ID (Unique Identifier),
@@ -12,10 +12,10 @@ POST to /api/init with correctly formatted handshake packet to initialize record
 }
 ```
 
-## /api/stream/<id>
+## /api/stream/\<id\>
 
 Use POST to stream recorded sound packets to our server for further analysis.
 
-## /visualize/<sessionID>
+## /visualize/\<sessionID\>
 
 Data visualization for *sessionID* recording session.
