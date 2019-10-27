@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Waveform</title>
+</head>
+<body style="margin:0;">
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<script src="/static/three.min.js"></script>
+<script src="/static/jquery-3.4.1.min.js"></script>
+<link rel="stylesheet" href="theme.css">
+<script>
+var sessionID = "7";
+function startListening() {
+    navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(stream => {
+        const context = new AudioContext();
+        const source = context.createMediaStreamSource(stream);
+
+        // server side
+        var postUrl = "";
+        var fileID = "";
+
+        var downsample = 4;
+
+        var graphCubesCount = 33;
+
+        function urlInit() {
+            const req = new XMLHttpRequest();
+            req.open("POST", "http://35.193.212.185/api/init", true);
+            req.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+            req.send(JSON.stringify({rate: context.sampleRate/downsample, sessionID: sessionID, location: ""}));
+
+            req.addEventListener("load", urlCallback, false);
+        }
+
+        function urlCallback(event) {
+
+            let data = JSON.parse(event.target.responseText);
+            // console.log(data);
+            //console.log("success", data.success);
+
+            postUrl = data.url;
+            let felix = postUrl.split("/");
+            fileID = felix[felix.length - 1];
+
+            setTimeout(getServerData, 500);
+        }
+
+        urlInit();
+
+        var timNoise = 0;
+        var ifft = [];
+
+        function getServerData() {
+            const req = new XMLHttpRequest();
+
+            req.open("GET", "http://35.193.212.185/api/analyze/" + sessionID + "/" + fileID, true);
+            req.addEventListener("load", serverCallback);
+            req.send();
+        }
+
+        function serverCallback(event) {
+            let data = JSON.parse(event.target.responseText);
+
+            // console.log(data);
+
+            timNoise = Math.round(Math.min(5*data.noise, 20));
+
+            if (!ifft || ifftIndex >= ifft.length/4) {
+                ifft = data.ifft;
+                console.log("change ifft");
+                ifftIndex = 0;
+            }
+
+
+
+
+
+            if(graphCubes.length !== graphCubesCount) {
+                renderGraphCubes();
+            }
+
+
+            console.log(timNoise);
+
+            // console.log(timNoise);
+
+            setTimeout(getServerData, 50);
+        }
+
+
+
+        const processor = context.createScriptProcessor(4096, 1, 1);
+
+        source.connect(processor);
+
+        const fakeDestination = context.createMediaStreamDestination();
+
+        processor.connect(fakeDestination);
+
+        let index = 0;
+        processor.onaudioprocess = event => {
+            // console.log(event);
+
+            let data = event.inputBuffer.getChannelData(0);
+            // console.log(data);
+
+
+            // let newData = data;
+            let newData = new Array(data.length / downsample);
+
+            for(let i = 0; i < data.length/downsample; i++) {
+                newData[i] = (data[downsample * i]
+                    + data[downsample * i + 1]
+                    + data[downsample * i + 2]
+                    + data[downsample * i + 3])/4;
+            }
+
+
+            let dataString = "[" + newData.join(",") + "]";
+
+            const packet = {"data" : dataString, "index" : index++};
+            ////console.log("packet: "+JSON.stringify(packet));
+
+            const xmlHttp = new XMLHttpRequest();
+            xmlHttp.open("POST", "http://35.193.212.185" + postUrl, true);
+            xmlHttp.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+            xmlHttp.send(JSON.stringify(packet));
+
+            xmlHttp.addEventListener("load", callback, false);
+        };
+
+        function callback(d) {
+            ////console.log(d);
+        }
+
+        const analyzer = context.createAnalyser();
+
+        analyzer.fftSize = 512;
+        analyzer.minDecibels = -100;
+        analyzer.maxDecibels = -10;
+        analyzer.smoothingTimeConstant = 0.50;
+
+        source.connect(analyzer);
+        analyzer.connect(fakeDestination);
+
+
+    let isListener = false;
+    let camera, scene, renderer;
+    let geometry, material, mesh, currentColor = 0xdfe6e9;
+    let graphCubes = [];
+
+    function init() {
+
+        camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
+        camera.position.z = 2;
+
+        scene = new THREE.Scene();
+        material = new THREE.MeshNormalMaterial();
+        
+        geometry1 = new THREE.CubeGeometry( 0.07, 0.07, 0.07);
+        geometry2 = new THREE.CubeGeometry( 0.07, 0.07, 0.07 );
+        geometry3 = new THREE.CubeGeometry( 0.07, 0.07, 0.07 );
+
+        mesh1 = new THREE.Mesh( geometry1, material );
+        mesh2 = new THREE.Mesh( geometry2, material );
+        mesh3 = new THREE.Mesh( geometry3, material );
+
+        scene.add( mesh1 );
+        scene.add( mesh2 );
+        scene.add( mesh3 );
+
+        mesh1.position.set(-0.7, 0, 0);
+        mesh2.position.set(0,0,0);
+        mesh3.position.set(0.7,0,0);
+
+        renderer = new THREE.WebGLRenderer( {antialias: true, alias: true} );
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.setClearColor (0xdfe6e9, 1);
+        document.body.appendChild(renderer.domElement);
+
+    }
+
+    function renderGraphCubes() {
+        for (let i = 0; i < graphCubesCount; i++) {
+
+            let material = new THREE.MeshNormalMaterial();
+
+            let geo = new THREE.CubeGeometry(0.05, 0.05, 0.05);
+
+            graphCubes.push(new THREE.Mesh(geo, material));
+
+            scene.add(graphCubes[i]);
+
+            graphCubes[i].position.set(i / 8 - 1 + 1 / 16, 0, -1);
+        }
+    }
+
+    var ifftIndex = 0;
+
+    function updateIfft() {
+        if (graphCubes.length === graphCubesCount) {
+            // console.log("update");
+
+            for (let i = 0; i < graphCubesCount; i++) {
+
+                let y = 0.0;
+
+                if (ifft && ifftIndex + i < ifft.length) {
+                    y = 2 * ifft[ifftIndex + i];
+                }
+
+                graphCubes[i].position.set(i / 8 - 2, y, -1);
+                // graphCubes[i].position.needsUpdate = true;
+
+                if (i % 2 === 0) {
+                    graphCubes[i].rotation.x -= 0.005;
+                }
+                else {
+                    graphCubes[i].rotation.x += 0.005;
+                }
+
+                if (i % 4 === 0 || i % 4 === 1) {
+                    graphCubes[i].rotation.y -= 0.005;
+                }
+                else {
+                    graphCubes[i].rotation.y += 0.005;
+                }
+            }
+        }
+        ifftIndex++;
+    }
+
+    init();
+
+    function refreshBins(){
+        let buf = new Float32Array(analyzer.frequencyBinCount);
+        analyzer.getFloatFrequencyData(buf);
+        /**** FELIX EDIT *****/
+        const totalBin = analyzer.frequencyBinCount-1;
+        let data = new Float64Array(analyzer.frequencyBinCount);
+        let sum = new Float64Array(data.length);
+        let sum_sq = new Float64Array(data.length);
+        sum[0] = buf[0];
+        sum_sq[0] = Math.pow(buf[0], 2);
+        for(let i = 1; i < buf.length-36; i++){
+            sum[i] = buf[i]+sum[i-1];
+            sum_sq[i] = Math.pow(buf[i], 2)+sum_sq[i-1];
+            if(i === buf.length-1){
+                currAvgDB = 1.0*sum[buf.length-1]/buf.length;
+            }
+        }
+        // two pointer
+        for(let i = 0; i < buf.length-36; i++){
+            for(let j = i+1; j < buf.length-36; j++){
+                let var1 = (sum_sq[i])/i - Math.pow(sum[i]/i, 2);
+                let var2 = (sum_sq[j]-sum_sq[i])/(j-i) - Math.pow((sum[j]-sum[i])/(j-i), 2);
+                let var3 = (sum_sq[totalBin]-sum_sq[j])/(totalBin-j) - Math.pow((sum[totalBin]-sum[j])/(totalBin-j), 2);
+                if(Math.abs(var1-var2) <= 2 && Math.abs(var2-var3) <= 2){
+                    if(Math.abs(arr[1]-i) > 15){
+                        if(arr[1] > i) {
+                            arr[1] -= 15;
+                        } else {
+                            arr[1] += 15;
+                        }
+                    } else {
+                        arr[1] = i;
+                    }
+                    if(Math.abs(arr[2]-j) > 15){
+                        if(arr[2] > j) {
+                            arr[2] -= 15;
+                        } else {
+                            arr[2] += 15;
+                        }
+                    } else {
+                        arr[2] = j;
+                    }
+                    //arr[1] = i; arr[2] = j;
+                    ////console.log(var1, var2, var3);
+                    ////console.log(0, arr[1], arr[2], arr[3]);
+                    //console.log("Mean: ", sum[i]/i, (sum[j]-sum[i])/(j-i), (sum[totalBin]-sum[j])/(totalBin-j));
+                    return;
+                }
+            }
+        }
+
+        //console.log(0,arr[1], arr[2], 255);
+    }
+
+    function animate() {
+
+        updateIfft();
+    
+        let a = arr[0], b = arr[1], c = arr[2], d = arr[3];
+        if(d < c){d = c;}
+        let buf = new Float32Array(analyzer.frequencyBinCount);
+        analyzer.getFloatFrequencyData(buf);
+
+        const minFreq = 0;
+        const maxFreq = context.sampleRate / 2;
+
+        let sum1 = 0.0, sum2 = 0.0, sum3 = 0.0;
+        for(let i = a; i < Math.min(buf.length, b); i++){
+            sum1+=buf[i];
+        }
+        for(let i = b; i < Math.min(buf.length, c); i++){
+            sum2+=buf[i];
+        }
+        for(let i = c; i < Math.min(buf.length, d); i++){
+            sum3+=buf[i];
+        }
+
+        let avg1 = sum1 / ((Math.min(buf.length, b)-a)*1.0);
+        let avg2 = sum2 / ((Math.min(buf.length, c)-b)*1.0);
+        let avg3 = sum3 / ((Math.min(buf.length, d)-c)*1.0);
+
+        avg1 = median(buf, a, b);
+        avg2 = median(buf, b, c);
+        avg3 = median(buf, c, d);
+
+        function median(array, start, end) {
+            temp = new Array(end-start);
+
+            for(let i = 0; i < end-start; i++) {
+                temp[i] = array[i + start];
+            }
+
+            temp = temp.sort((a, b) => (a - b));
+
+            let middle = Math.floor(temp.length/2);
+            if(temp.length % 2 === 0) {
+                return (temp[middle]+temp[middle-1])/2;
+            }
+            else {
+                return temp[middle];
+            }
+        }
+
+        //console.log(avg3);
+        //console.log(avg);
+
+        // setInterval(analyze, 50);
+
+        requestAnimationFrame( animate );
+
+        mesh1.rotation.x += 0.005;
+        mesh1.rotation.y += 0.005;
+        mesh2.rotation.x -= 0.005;
+        mesh2.rotation.y += 0.005;
+        mesh3.rotation.x -= 0.005;
+        mesh3.rotation.y -= 0.005;
+
+        approx_min = -150;
+        approx_max = -60;
+
+        scaleish1 = 1.0*(Math.max(avg1 - approx_min,0))/(approx_max - approx_min);
+        scaleish2 = 1.0*(Math.max(avg2 - approx_min,0))/(approx_max - approx_min);
+        scaleish3 = 1.0*(Math.max(avg3 - approx_min,0))/(approx_max - approx_min);
+
+        scale1 = 1 + 3.5*Math.max(Math.min(scaleish1, 1), 0);
+        scale2 = 1 + 3.5*Math.max(Math.min(scaleish2, 1), 0);
+        scale3 = 1 + 3.5*Math.max(Math.min(scaleish3, 1), 0);
+
+        mesh1.scale.x = scale1;
+        mesh1.scale.y = scale1;
+        mesh1.scale.z = scale1;
+        mesh2.scale.x = scale2;
+        mesh2.scale.y = scale2;
+        mesh2.scale.z = scale2;
+        mesh3.scale.x = scale3;
+        mesh3.scale.y = scale3;
+        mesh3.scale.z = scale3;
+
+        renderer.render( scene, camera );
+
+    }
+
+    function getRandomInt(max) {
+        return Math.floor(Math.random() * Math.floor(max));
+    }
+
+    function checkChangeColor(){
+        let colors = [0xdfe6e9, 0xFD7272, 0x3B3B98, 0xF97F51, 0x1B9CFC, 0xB33771, 0xD6A2E8, 0x55E6C1];
+        let buf = new Float32Array(analyzer.frequencyBinCount);
+        analyzer.getFloatFrequencyData(buf);
+        let sum = 0.0;
+        for(let i = 0; i < 80; i++){
+            sum+=buf[i];
+        }
+        let avg = sum/80.0;
+
+
+        if(avg > prevAvg && (avg-prevAvg)/Math.abs(prevAvg) > 0.25){
+            console.log("change color");
+            let newColor = colors[getRandomInt(8)];
+            while(newColor === currentColor) {
+                newColor = colors[getRandomInt(8)];
+            }
+            renderer.setClearColor (newColor, 1);
+            currentColor = newColor;
+        }
+        else if (timNoise > 0) {
+            let distortNoise = Math.round(1 - 2*Math.random() * timNoise);
+            let newColor = 0;
+            for(let i = 0; i < 4; i++) {
+                let component = currentColor >> (i * 8) & 0xff;
+
+                let newComponent = Math.max(Math.min(component + distortNoise, 255), 0);
+                newColor += newComponent << (i * 8);
+            }
+
+            renderer.setClearColor(newColor, 1);
+        }
+        prevAvg = avg;
+        
+    }
+
+    let prevAvg = -100.0;
+    setInterval(checkChangeColor, 50);
+
+    let arr =  [0, 45, 60, 219];
+    let count = 0;
+    const interval = setInterval(function() {
+        refreshBins();
+    }, 250);
+    animate();
+        
+    });
+}
+
+    function listener(event){ // user chose listener role
+        isListener = true;
+        
+        let sessionInput = document.getElementById("eventID");
+
+        if(sessionInput) {
+            sessionID = sessionInput.value;
+        }
+        
+
+        let back = document.createElement("INPUT");
+        back.type = "submit"; back.value = "Stop"; back.id = "back";
+        back.addEventListener("click", function(event){
+            location.reload(false);
+        })
+        document.body.insertBefore(back, document.body.children[0]);
+
+        if(document.getElementById("butclass")){
+            document.getElementById("butclass").remove();
+        }
+        if(document.getElementById("listener")){
+            document.getElementById("listener").remove();
+        }
+        if(document.getElementById("player")){
+            document.getElementById("player").remove();
+        }
+
+        startListening();
+    }
+
+    function player(event){ // user chose player role
+
+        isListener = false;
+
+        let back = document.createElement("INPUT");
+        back.type = "submit"; back.value = "back";
+        back.addEventListener("click", function(event){
+            location.reload(false);
+        })
+        document.body.insertBefore(back, document.body.children[0]);
+        
+        if(document.getElementById("listener")){
+            document.getElementById("listener").remove();
+        }
+        if(document.getElementById("player")){
+            document.getElementById("player").remove();
+        }
+        
+    }
+
+</script>
+<div class ="wrapper" id = "butclass">
+    <div>
+    <p><input class = "button" type = "submit" id = "listener" value = "Listen"></p>
+    <p><input type = "text" class="eventID" id="eventID" placeholder="Session ID"> </p>   
+    </div>
+</div>
+<script>
+    /* EVENT LISTENERS */
+    document.getElementById("listener").addEventListener("click", listener, false);
+</script>
+
+</body>
+</html>
