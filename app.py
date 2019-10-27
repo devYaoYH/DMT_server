@@ -1,6 +1,7 @@
 from flask import Flask
 from flask import request
 from flask import send_from_directory
+from flask import render_template
 import os
 import sys
 import json
@@ -20,7 +21,7 @@ WAV_DIR = '/home/yaoyiheng/session/'
 
 @app.route('/')
 def hello_world():
-    return "Hello Sounds!"
+    return render_template('index.html')
 
 @app.route('/api/init', methods = ['POST'])
 def init_sound():

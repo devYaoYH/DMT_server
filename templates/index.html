@@ -10,7 +10,7 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<!--[if lte IE 8]><script src="assets/js/ie/html5shiv.js"></script><![endif]-->
-		<link rel="stylesheet" href="assets/css/main.css" />
+		<link rel="stylesheet" href="/static/css/main.css" />
 		<!--[if lte IE 9]><link rel="stylesheet" href="assets/css/ie9.css" /><![endif]-->
 	</head>
 	<body>
@@ -37,34 +37,34 @@
 					<!-- 2:1 is the best ratio -->
 					<div class="features">
 						<div class="feature">
-							<span class="image fit"><img src="images/visualization.png" alt="" /></span>
+							<span class="image fit"><img src="/static/img/visualization.png" alt="" /></span>
 							<h3>Audio Visualization</h3>
 							<p>We use Three.js to display audio frequencies with 3D cubes and change the background color when lower frequencies register.</p>
 						</div>
 						<div class="feature">
-							<span class="image fit"><img src="images/pic-fft.png" alt="" /></span>
+							<span class="image fit"><img src="/static/img/pic-fft.png" alt="" /></span>
 							<h3>Audio Quality Measurement</h3>
 							<p>Using Python and novel algorithms, we compare discrete fourier transform outputs of idealized and realized sound clips.</p>
 						</div>
 						<div class="feature">
-							<span class="image fit"><img src="images/gcp.png" alt="" /></span>
+							<span class="image fit"><img src="/static/img/gcp.png" alt="" /></span>
 							<h3>GCP</h3>
 							<p>We use GCP to create an Apache server with flask backend and our own API endpoints in order to stream audio.</p>
 						</div>
 						<div class="feature">
-							<span class="image fit"><img src="images/IMG_3150.jpg" alt="" /></span>
+							<span class="image fit"><img src="/static/img/IMG_3150.jpg" alt="" /></span>
 							<h3>Lots of Math</h3>
 							<p>For example, we balance our audio input by frequency variance and median to ensure our visualization looks consistent.</p>
 						</div>
 						<div class="feature">
-							<span class="image fit"><img src="images/maths.jpg" alt="" /></span>
+							<span class="image fit"><img src="/static/img/maths.jpg" alt="" /></span>
 							<h3>Gratitude</h3>
 							<p>We want to thank everyone who was part of the hackathon for making an impact.</p>
 						</div>
 					</div>
 				</div>
 				<ul>
-						<li><a href="../felix-js-tests/index.html" class="button special" id = "start">Get started</a></li>
+						<li><a href="#" class="button special" id = "start">Get started</a></li>
 				</ul>
 			</section>
 
@@ -79,7 +79,7 @@
 		<!-- Scripts -->
 		<script>
 			document.getElementById("start").addEventListener("click", function(event){
-				window.location("../felix-js-tests/index.html");
+				window.location("#");
 			},false);
 		</script>
 	</body>
