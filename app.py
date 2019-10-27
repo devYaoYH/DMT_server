@@ -51,12 +51,15 @@ def view_session(sessionID):
         if (not os.path.isfile(sound_file)):
             # Save as wav file
             scipy_wav.write(f"{app.config['UPLOAD_FOLDER']}{sessionID}_{s_id}.wav", SOUNDS[s_id]['rate'], np.asarray(sound_data))
+        else:
             del SOUNDS[s_id]['data'][:]
     return json.dumps({'success': True, 'log': SESSIONS[sessionID]})
     #return send_from_directory(directory=app.config['UPLOAD_FOLDER'], filename=f'{sessionID}_{s_id}.wav', as_attachment=True)
 
 @app.route('/view/<sessionID>/<fileID>')
 def view_wav(sessionID, fileID):
+    global SOUNDS
+    fileID = int(fileID)
     link = f'35.193.212.185/view/raw/{sessionID}/{fileID}'
     try:
         log = SOUNDS[fileID]['log']
@@ -88,7 +91,7 @@ def stream(sound_id):
                     SOUNDS[sound_id]['log'].append(data['index'])
                 except Exception as e:
                     return json.dumps({'success': False, 'log': f"Data formatting error {str(e)}"})
-            return json.dumps({'success': True, 'data': f"{sound_id}: {SOUNDS[sound_id]['data']}"})
+            return json.dumps({'success': True, 'data': f"{sound_id}"})
         else:
             return json.dumps({'success': False, 'log': "Malformed Packet"})
     return json.dumps({'success': False, 'log': "Not a POST"})
