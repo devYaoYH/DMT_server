@@ -2,6 +2,7 @@ from flask import Flask
 from flask import request
 from flask import send_from_directory
 import os
+import sys
 import json
 import numpy as np
 import scipy.io.wavfile
@@ -13,8 +14,9 @@ scipy_wav = scipy.io.wavfile
 ADDR = ('localhost', 31234)
 PKT_INIT = 0
 PKT_STREAM = 1
-PKT_VIEW - 2
+PKT_VIEW = 2
 PKT_DOWNLOAD = 3
+WAV_DIR = '/home/yaoyiheng/session/'
 
 @app.route('/')
 def hello_world():
@@ -30,6 +32,12 @@ def init_sound():
         return db_client.send_pkt(ADDR, json.dumps(data))
     return json.dumps({'success': False})
 
+@app.route('/view')
+def view_all():
+    req_view = dict()
+    req_view['type'] = PKT_VIEW
+    return db_client.send_pkt(ADDR, json.dumps(req_view))
+
 @app.route('/view/<sessionID>')
 def view_session(sessionID):
     req_view = dict()
@@ -43,12 +51,18 @@ def view_wav(sessionID, fileID):
     req_dl['sessionID'] = sessionID
     req_dl['soundID'] = fileID
     req_dl['type'] = PKT_DOWNLOAD
-    return db_client.send_pkt(ADDR, json.dumps(req_dl))
+    print("Clinet Requested for FILE\n", req_dl, file=sys.stderr)
+    ret_pkt = json.loads(db_client.send_pkt(ADDR, json.dumps(req_dl)))
+    if (ret_pkt['success']):
+        return send_from_directory(directory=WAV_DIR, filename=ret_pkt['url'], as_attachment=True)
+    else:
+        return json.dumps(ret_pkt)
 
 @app.route('/api/stream/<sound_id>', methods = ['POST'])
 def stream(sound_id):
     if request.method == 'POST':
         data = request.json
+        data['soundID'] = sound_id
         data['data'] = [float(f) for f in json.loads(data['data'])]
         req_stream = data
         req_stream['type'] = PKT_STREAM
