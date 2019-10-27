@@ -24,6 +24,10 @@ WAV_DIR = '/home/yaoyiheng/session/'
 def hello_world():
     return render_template('index.html')
 
+@app.route('/visual')
+def visual_js():
+    return render_template('visual.html')
+
 @app.route('/api/init', methods = ['POST'])
 def init_sound():
     if request.method == 'POST':
