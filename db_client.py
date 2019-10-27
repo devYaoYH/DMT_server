@@ -3,7 +3,7 @@ import socket
 import pickle
 import json
 
-BUF_SIZE = 16
+BUF_SIZE = 4096
 PKT_HEADER = 4
 
 def run_client(ADDR):
@@ -50,7 +50,9 @@ def send_pkt(ADDR, pkt):
         while len(ret_pkt) < pkt_size:
             ret_pkt.extend(data)
             data = s.recv(min(BUF_SIZE, pkt_size - len(ret_pkt)))
-        print("Received pkt:", pickle.loads(ret_pkt))
+        ret_pkt = pickle.loads(ret_pkt)
+        print("Received pkt:", ret_pkt)
+        return ret_pkt
 
 if __name__ == '__main__':
     HOST = 'localhost'
