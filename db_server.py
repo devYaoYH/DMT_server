@@ -7,6 +7,7 @@ import util
 import numpy as np
 import scipy.io.wavfile
 scipy_wav = scipy.io.wavfile
+util = util.util
 
 BUF_SIZE = 4096
 PKT_HEADER = 4
@@ -85,7 +86,10 @@ def digest_packet(json_dump):
         soundID = int(pkt['soundID'])
         if (soundID in SOUNDS and sessionID in SESSIONS and soundID in SESSIONS[sessionID]):
             sample_window = -SOUNDS[soundID]['rate']//1000*SAMPLE_WINDOW
-            sample_data = SOUNDS[soundID]['data'][:sample_window]
+            raw_data = sorted(SOUNDS[soundID]['data'][max(0, len(SOUNDS[soundID]['data'])+sample_window):])
+            sample_data = []
+            for t in raw_data:
+                sample_data.extend(t[1])
             ret_pkt = dict()
             ret_pkt['noise'] = util.smoothnessAccessAverage(SOUNDS[soundID]['rate'], sample_data, 3)
             ret_pkt['ifft'] = util.smoothIFFT(SOUNDS[soundID]['rate'], sample_data, 3)

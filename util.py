@@ -177,6 +177,8 @@ class util():
 		l_x = len(x)
 		y = [0] * l_x
 
+        print("Given length:", l_x, file=sys.stderr)
+
 		tmp = 0
 		r = level//2
 		for i in range(0,level):
@@ -260,7 +262,7 @@ class util():
 		for i in x:
 			if i > max_x: max_x = i
 
-		y = util.smoothAverage(x,level)
+		y = util.smoothAverage(rate,x,level)
 
 		dev = 0
 		tot = 0
