@@ -12,7 +12,8 @@ util = util.util
 BUF_SIZE = 4096
 PKT_HEADER = 4
 
-SAMPLE_WINDOW = 50
+SAMPLE_WINDOW = 35
+DEFAULT_PKT_SIZE = 1024
 
 WAV_DIR = '/home/yaoyiheng/session/'
 SOUNDS = dict()
@@ -75,7 +76,7 @@ def digest_packet(json_dump):
                     data_arr.extend(t[1])
                 print(data_arr[:10], file=sys.stderr)
                 scipy_wav.write(fname, SOUNDS[soundID]['rate'], np.asarray(data_arr))
-            sample_window = -SOUNDS[soundID]['rate']//1000*SAMPLE_WINDOW
+            sample_window = -SOUNDS[soundID]['rate']//1000*SAMPLE_WINDOW//(len(SOUNDS[soundID]['data'][-1][1]) if len(SOUNDS[soundID]['data'][-1]) > 1 else DEFAULT_PKT_SIZE)
             print(f'Keeping {sample_window} in memory')
             del SOUNDS[soundID]['data'][:sample_window]
             return json.dumps({'success': True, 'url': f'{sessionID}_{soundID}.wav'})
@@ -85,16 +86,20 @@ def digest_packet(json_dump):
         sessionID = pkt['sessionID']
         soundID = int(pkt['soundID'])
         if (soundID in SOUNDS and sessionID in SESSIONS and soundID in SESSIONS[sessionID]):
-            sample_window = -SOUNDS[soundID]['rate']//1000*SAMPLE_WINDOW
+            sample_window = -SOUNDS[soundID]['rate']//1000*SAMPLE_WINDOW//(len(SOUNDS[soundID]['data'][-1][1]) if len(SOUNDS[soundID]['data'][-1]) > 1 else DEFAULT_PKT_SIZE)
+            #print(f"Analyzing last {len(SOUNDS[soundID]['data']) + sample_window}:{len(SOUNDS[soundID]['data'])}", file=sys.stderr)
             raw_data = sorted(SOUNDS[soundID]['data'][max(0, len(SOUNDS[soundID]['data'])+sample_window):])
             sample_data = []
             for t in raw_data:
                 sample_data.extend(t[1])
-            ret_pkt = dict()
-            ret_pkt['noise'] = util.smoothnessAccessAverage(SOUNDS[soundID]['rate'], sample_data, 3)
-            ret_pkt['ifft'] = util.smoothIFFT(SOUNDS[soundID]['rate'], sample_data, 3)
-            ret_pkt['success'] = True
-            return json.dumps(ret_pkt)
+            try:
+                ret_pkt = dict()
+                ret_pkt['noise'] = util.smoothnessAssessAverage(SOUNDS[soundID]['rate'], sample_data, 3)
+                ret_pkt['ifft'] = list(util.smoothIFFT(SOUNDS[soundID]['rate'], sample_data, 3))
+                ret_pkt['success'] = True
+                return json.dumps(ret_pkt)
+            except Exception as e:
+                return json.dumps({'success': False, 'log': str(e)})
         else:
             ret_pkt['success'] = False
             return json.dumps(ret_pkt)

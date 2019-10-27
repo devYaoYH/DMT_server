@@ -1,4 +1,5 @@
 import numpy
+import sys
 import numpy as np
 from scipy import fftpack
 # import matplotlib.pyplot as plt
@@ -245,7 +246,7 @@ class util():
 
         #     plt.show()
 
-        return abs(y)
+        return y.real
 
 
     '''
