@@ -33,7 +33,7 @@ def init_sound():
             except:
                 SESSIONS[sessionID] = [SOUNDS_IDX]
         url = f'/api/stream/{SOUNDS_IDX}'
-        SOUNDS[SOUNDS_IDX] = {'data': [], 'index': 0, 'rate': int(data['rate'])}
+        SOUNDS[SOUNDS_IDX] = {'data': [], 'index': 0, 'rate': int(data['rate']), 'log': []}
         SOUNDS_IDX += 1
         return json.dumps({'success': True, 'url': url, 'session': sessionID})
     return json.dumps({'success': False})
@@ -51,10 +51,20 @@ def view_session(sessionID):
         if (not os.path.isfile(sound_file)):
             # Save as wav file
             scipy_wav.write(f"{app.config['UPLOAD_FOLDER']}{sessionID}_{s_id}.wav", SOUNDS[s_id]['rate'], np.asarray(sound_data))
-    return json.dumps({'success': True, 'log': SESSIONS[sessionID])
+            del SOUNDS[s_id]['data'][:]
+    return json.dumps({'success': True, 'log': SESSIONS[sessionID]})
     #return send_from_directory(directory=app.config['UPLOAD_FOLDER'], filename=f'{sessionID}_{s_id}.wav', as_attachment=True)
 
 @app.route('/view/<sessionID>/<fileID>')
+def view_wav(sessionID, fileID):
+    link = f'35.193.212.185/view/raw/{sessionID}/{fileID}'
+    try:
+        log = SOUNDS[fileID]['log']
+        return json.dumps({'success': True, 'link': link, 'log': log})
+    except:
+        return json.dumps({'success': False})
+
+@app.route('/view/raw/<sessionID>/<fileID>')
 def download_wav(sessionID, fileID):
     sound_file = f"{app.config['UPLOAD_FOLDER']}{sessionID}_{fileID}.wav"
     if (os.path.isfile(sound_file)):
@@ -75,6 +85,7 @@ def stream(sound_id):
                 try:
                     SOUNDS[sound_id]['data'].extend([float(f) for f in json.loads(data['data'])])
                     SOUNDS[sound_id]['index'] += 1
+                    SOUNDS[sound_id]['log'].append(data['index'])
                 except Exception as e:
                     return json.dumps({'success': False, 'log': f"Data formatting error {str(e)}"})
             return json.dumps({'success': True, 'data': f"{sound_id}: {SOUNDS[sound_id]['data']}"})
