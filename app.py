@@ -17,6 +17,7 @@ PKT_INIT = 0
 PKT_STREAM = 1
 PKT_VIEW = 2
 PKT_DOWNLOAD = 3
+PKT_QUERY = 4
 WAV_DIR = '/home/yaoyiheng/session/'
 
 @app.route('/')
@@ -58,6 +59,15 @@ def view_wav(sessionID, fileID):
         return send_from_directory(directory=WAV_DIR, filename=ret_pkt['url'], as_attachment=True)
     else:
         return json.dumps(ret_pkt)
+
+@app.route('/api/analyze/<sessionID>/<fileID>')
+def get_analysis(sessionID, fileID):
+    req_analysis = dict()
+    req_analysis['sessionID'] = sessionID
+    req_analysis['soundID'] = fileID
+    req_analysis['type'] = PKT_QUERY
+    ret_pkt = json.loads(db_client.send_pkt(ADDR, json.dumps(req_analysis)))
+    return json.dumps(ret_pkt)
 
 @app.route('/api/stream/<sound_id>', methods = ['POST'])
 def stream(sound_id):

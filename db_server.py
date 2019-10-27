@@ -3,6 +3,7 @@ import pickle
 import os
 import sys
 import json
+import util
 import numpy as np
 import scipy.io.wavfile
 scipy_wav = scipy.io.wavfile
@@ -22,6 +23,7 @@ PKT_INIT = 0
 PKT_STREAM = 1
 PKT_VIEW = 2
 PKT_DOWNLOAD = 3
+PKT_QUERY = 4
 
 def digest_packet(json_dump):
     global SOUNDS
@@ -78,6 +80,21 @@ def digest_packet(json_dump):
             return json.dumps({'success': True, 'url': f'{sessionID}_{soundID}.wav'})
         else:
             return json.dumps({'success': False, 'log': f'File {soundID} does not exist for session {sessionID}'})
+    elif (pkt['type'] == PKT_QUERY):
+        sessionID = pkt['sessionID']
+        soundID = int(pkt['soundID'])
+        if (soundID in SOUNDS and sessionID in SESSIONS and soundID in SESSIONS[sessionID]):
+            sample_window = -SOUNDS[soundID]['rate']//1000*SAMPLE_WINDOW
+            sample_data = SOUNDS[soundID]['data'][:sample_window]
+            ret_pkt = dict()
+            ret_pkt['noise'] = util.smoothnessAccessAverage(SOUNDS[soundID]['rate'], sample_data, 3)
+            ret_pkt['ifft'] = util.smoothIFFT(SOUNDS[soundID]['rate'], sample_data, 3)
+            ret_pkt['success'] = True
+            return json.dumps(ret_pkt)
+        else:
+            ret_pkt['success'] = False
+            return json.dumps(ret_pkt)
+        
 
 def run_server(ADDR, debug=False):
     host, port = ADDR

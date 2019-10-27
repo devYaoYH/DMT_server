@@ -42,7 +42,7 @@ class util():
 
 			ax.set_xlim(0, 20000)
 
-			plt.show()
+			#plt.show()
 
 		return abs(A), freq
 
@@ -83,7 +83,7 @@ class util():
 			ax.set_xlabel('Time [s]')
 			ax.set_ylabel('Signal amplitude')
 
-			plt.show()
+			#plt.show()
 
 		return peak
 
@@ -160,7 +160,7 @@ class util():
 			ax.set_xlabel('Time [s]')
 			ax.set_ylabel('Signal amplitude')
 
-			plt.show()
+			#plt.show()
 
 		return peak
 
@@ -202,7 +202,7 @@ class util():
 			ax.set_xlabel('Time [s]')
 			ax.set_ylabel('Signal amplitude')
 
-			plt.show()
+			#plt.show()
 
 		return y
 
@@ -243,7 +243,7 @@ class util():
 			ax.set_xlabel('Time [s]')
 			ax.set_ylabel('Signal amplitude')
 
-			plt.show()
+			#plt.show()
 
 		return y
 
@@ -387,7 +387,7 @@ class util():
 			ax.set_xlabel('Time [s]')
 			ax.set_ylabel('Signal amplitude Difference')
 
-			plt.show()
+			#plt.show()
 
 			fig, ax = plt.subplots()
 			ax.plot(t, det / max_det, "b")
@@ -398,7 +398,7 @@ class util():
 			ax.set_xlabel('Time [s]')
 			ax.set_ylabel('Signal amplitude')
 
-			plt.show()
+			#plt.show()
 
 		return min_pos, min_dev, dev
 

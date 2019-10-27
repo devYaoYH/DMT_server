@@ -27,3 +27,13 @@ Use POST to stream recorded sound packets to our server for further analysis.
 ## /view/\<sessionID\>
 
 Data visualization for *sessionID* recording session.
+
+## /api/analyze/\<sessionID\>/\<fileID\>
+
+Get some analysis data from Tim's utils (return json):
+```
+{
+    'noise': <float> noise level,
+    'ifft': [<float>] array of values with ifft smoothened audio (last 50ms)
+}
+```
