@@ -24,46 +24,67 @@ function startListening() {
 
         var graphCubesCount = 33;
 
-        function urlInit() {
-            const req = new XMLHttpRequest();
-            req.open("POST", "http://35.193.212.185/api/init", true);
-            req.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-            req.send(JSON.stringify({rate: context.sampleRate/downsample, sessionID: sessionID, location: ""}));
-
-            req.addEventListener("load", urlCallback, false);
+        async function urlInit() {
+            const url = '/api/init';
+            const data = {rate: context.sampleRate/downsample, sessionID: sessionID, location: ""};
+            try{
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+                const reply_json = await response.json();
+                return reply_json;
+            } catch(error){
+                console.error('INIT POST error:', error);
+            }
         }
 
-        function urlCallback(event) {
-
-            let data = JSON.parse(event.target.responseText);
+        function initCallback(data) {
             // console.log(data);
             //console.log("success", data.success);
-
             postUrl = data.url;
             let felix = postUrl.split("/");
             fileID = felix[felix.length - 1];
-
-            setTimeout(getServerData, 500);
+            setTimeout(getServerDataWrapper, 500);
         }
 
-        urlInit();
+        urlInit().then(result => {
+            initCallback(result);
+        }).catch(error => {
+            console.error('Async init error:', error);
+        });
 
         var timNoise = 0;
         var ifft = [];
 
-        function getServerData() {
-            const req = new XMLHttpRequest();
-
-            req.open("GET", "http://35.193.212.185/api/analyze/" + sessionID + "/" + fileID, true);
-            req.addEventListener("load", serverCallback);
-            req.send();
+        function getServerDataWrapper(){
+            getServerData().then(result => {
+                analyzeCallback(result);
+            }).catch(error => {
+                console.error('Analyze async error:', error);
+            });
         }
 
-        function serverCallback(event) {
-            let data = JSON.parse(event.target.responseText);
+        async function getServerData() {
+            const url = '/api/analyze/' + sessionID + '/' + fileID;
+            try{
+                const response = await fetch(url, {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+                const reply_json = await response.json();
+                return reply_json;
+            } catch(error){
+                console.error('ANALYZE GET error:', error);
+            }
+        }
 
+        function analyzeCallback(data) {
             // console.log(data);
-
             timNoise = Math.round(Math.min(5*data.noise, 20));
 
             if (!ifft || ifftIndex >= ifft.length/4) {
@@ -72,23 +93,16 @@ function startListening() {
                 ifftIndex = 0;
             }
 
-
-
-
-
             if(graphCubes.length !== graphCubesCount) {
                 renderGraphCubes();
             }
-
 
             console.log(timNoise);
 
             // console.log(timNoise);
 
-            setTimeout(getServerData, 50);
+            setTimeout(getServerDataWrapper, 50);
         }
-
-
 
         const processor = context.createScriptProcessor(4096, 1, 1);
 
@@ -97,6 +111,21 @@ function startListening() {
         const fakeDestination = context.createMediaStreamDestination();
 
         processor.connect(fakeDestination);
+        
+        async function sendSoundBites(packet){
+            try{
+                const response = await fetch(postUrl, {
+                    method: 'POST',
+                    body: JSON.stringify(packet),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+            } catch(error){
+                console.error('STREAM error:', error);
+            }
+        }
 
         let index = 0;
         processor.onaudioprocess = event => {
@@ -118,21 +147,10 @@ function startListening() {
 
 
             let dataString = "[" + newData.join(",") + "]";
-
             const packet = {"data" : dataString, "index" : index++};
             ////console.log("packet: "+JSON.stringify(packet));
-
-            const xmlHttp = new XMLHttpRequest();
-            xmlHttp.open("POST", "http://35.193.212.185" + postUrl, true);
-            xmlHttp.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-            xmlHttp.send(JSON.stringify(packet));
-
-            xmlHttp.addEventListener("load", callback, false);
+            sendSoundBites(packet);
         };
-
-        function callback(d) {
-            ////console.log(d);
-        }
 
         const analyzer = context.createAnalyser();
 

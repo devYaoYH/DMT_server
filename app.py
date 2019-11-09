@@ -5,12 +5,8 @@ from flask import render_template
 import os
 import sys
 import json
-import numpy as np
-import scipy.io.wavfile
 import db_client
 app = Flask(__name__)
-
-scipy_wav = scipy.io.wavfile
 
 ADDR = ('localhost', 31234)
 PKT_INIT = 0
@@ -24,9 +20,9 @@ WAV_DIR = '/home/yaoyiheng/session/'
 def hello_world():
     return render_template('index.html')
 
-@app.route('/visual')
+@app.route('/demo')
 def visual_js():
-    return render_template('visual.html')
+    return render_template('demo.html')
 
 @app.route('/api/init', methods = ['POST'])
 def init_sound():
